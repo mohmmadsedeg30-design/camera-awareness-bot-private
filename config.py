@@ -8,3 +8,4 @@ ADMIN_CHAT_ID = "YOUR_ADMIN_CHAT_ID_HERE"  # ID الأدمن الرئيسي
 FLASK_HOST = "0.0.0.0"
 FLASK_PORT = 5000
 FLASK_DEBUG = False
+WEB_DOMAIN = "http://127.0.0.1:5000" # استبدل هذا برابط cloudflared أو ngrok لاحقاً
