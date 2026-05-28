@@ -1,11 +1,10 @@
+
 # config.py - ضع بياناتك هنا
 # ⚠️ لا تشارك هذا الملف على GitHub مع بيانات حقيقية!
 
-TELEGRAM_BOT_TOKEN = "8645238541:AAF_THZ08LqIiV8MkxmosktWt3CneAX_bM4"
-ADMIN_CHAT_ID = "7968208362"  # ID الأدمن الرئيسي
+import os
 
-# Flask settings
-FLASK_HOST = "0.0.0.0"
-FLASK_PORT = 5000
-FLASK_DEBUG = False
-WEB_DOMAIN = "http://127.0.0.1:5000" # استبدل هذا برابط cloudflared أو ngrok لاحقاً
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID", "")  # ID الأدمن الرئيسي
+WEB_DOMAIN = os.environ.get("WEB_DOMAIN", "") # رابط المشروع على Vercel
+WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET", "") # سر الويب هوك
