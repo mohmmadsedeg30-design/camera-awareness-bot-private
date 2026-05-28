@@ -10,7 +10,7 @@ import threading
 import requests
 from io import BytesIO
 from flask import Flask, render_template, request, jsonify
-from config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, FLASK_HOST, FLASK_PORT
+from config import TELEGRAM_BOT_TOKEN, ADMIN_CHAT_ID, FLASK_HOST, FLASK_PORT, FLASK_DEBUG
 
 app = Flask(__name__)
 
