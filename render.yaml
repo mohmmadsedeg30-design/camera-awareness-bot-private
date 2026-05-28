@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: camera-awareness-bot
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: ADMIN_CHAT_ID
+        value: "7968208362"
+      - key: WEB_DOMAIN
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true

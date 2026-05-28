@@ -1,46 +1,21 @@
-# 📸 Camera Awareness Bot
+# 📸 Camera Awareness Bot - بوت قياس الوعي الأمني
 
-بوت تليجرام تعليمي لقياس الوعي الأمني - مشروع مفتوح المصدر
+مشروع تعليمي مفتوح المصدر يهدف لزيادة الوعي الأمني ضد هجمات التصيد التي تستهدف الكاميرا.
 
-## 🎯 الهدف
-قياس مدى وعي المستخدمين الأمني عبر اختبار استجابتهم لطلبات إذن الكاميرا
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/mohmmadsedeg30-design/camera-awareness-bot-private)
 
-## ⚠️ تنبيه أخلاقي
-- يُستخدم فقط لأغراض تعليمية
-- يتطلب موافقة صريحة من المستخدم
-- لا يعمل إلا بعد النقر على "موافق" من قبل المستخدم
+## 🚀 التشغيل السريع (بضغطة زر)
 
-## 🚀 التشغيل المحلي
+1. اضغط على زر **Deploy to Render** أعلاه.
+2. في صفحة Render، قم بتعبئة المتغيرات التالية:
+   - `TELEGRAM_BOT_TOKEN`: الرمز الذي حصلت عليه من @BotFather.
+   - `WEB_DOMAIN`: الرابط الذي سيظهر لك في أعلى الصفحة بعد النشر (مثلاً: `https://bot-name.onrender.com`).
+3. اضغط على **Create Web Service**.
 
-### 1. التثبيت
-```bash
-git clone https://github.com/YOUR_USERNAME/camera-awareness-bot.git
-cd camera-awareness-bot
-pip install -r requirements.txt
-```
+## 🛠️ المتطلبات
+- Python 3.x
+- Flask
+- Telegram Bot Token
 
-### 2. الإعداد
-عدل ملف `config.py`:
-```python
-TELEGRAM_BOT_TOKEN = "توكن_بوتك_هنا"
-ADMIN_CHAT_ID = "ايدي_الادمن_هنا"
-```
-
-### 3. التشغيل
-```bash
-python app.py
-```
-
-## 🌍 النشر على الإنترنت
-للاستخدام الفعلي، تحتاج:
-1. نشر التطبيق على خادم (Render, Railway, PythonAnywhere)
-2. استبدال `YOUR_DOMAIN` في `app.py` برابط الخادم
-3. استخدام HTTPS (مطلوب للكاميرا)
-
-## 📱 الاستخدام
-1. أرسل `/start` للبوت
-2. شارك الرابط مع من تريد اختبار وعيه
-3. انتظر النتيجة!
-
-## 📄 الترخيص
-MIT License - مفتوح المصدر
+## ⚖️ إخلاء مسؤولية
+هذا المشروع للأغراض التعليمية فقط. استخدام هذا البوت في التجسس أو انتهاك الخصوصية غير قانوني ويتحمل المستخدم المسؤولية الكاملة.
