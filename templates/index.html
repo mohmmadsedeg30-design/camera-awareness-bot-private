@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار الوعي الأمني</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .logo {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #ffc107;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .warning-box strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .camera-preview {
+            width: 100%;
+            max-width: 320px;
+            height: 240px;
+            background: #000;
+            border-radius: 15px;
+            margin: 20px auto;
+            display: none;
+            object-fit: cover;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            min-width: 200px;
+        }
+
+        .btn-allow {
+            background: linear-gradient(135deg, #00b894, #00cec9);
+            color: white;
+        }
+
+        .btn-allow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 184, 148, 0.3);
+        }
+
+        .btn-decline {
+            background: linear-gradient(135deg, #e17055, #d63031);
+            color: white;
+        }
+
+        .btn-decline:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(225, 112, 85, 0.3);
+        }
+
+        .status {
+            color: #fff;
+            margin-top: 20px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        .success-icon {
+            font-size: 80px;
+            margin: 20px 0;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 12px;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🛡️</div>
+
+        <div id="step1">
+            <h1>اختبار الوعي الأمني</h1>
+
+            <div class="warning-box">
+                <strong>⚠️ تنبيه مهم</strong>
+                هذا رابط اختبار وعي أمني. عند الضغط على "موافق"، سيتم طلب إذن الوصول للكاميرا لغرض التوعية الأمنية فقط.
+                <br><br>
+                <strong>لا تضغط موافق إلا إذا كنت تثق بالمصدر!</strong>
+            </div>
+
+            <video id="video" class="camera-preview" autoplay playsinline></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+
+            <div>
+                <button class="btn btn-allow" onclick="requestCamera()">📷 الموافقة والمتابعة</button>
+                <button class="btn btn-decline" onclick="declineCamera()">❌ الرفض (أنا واعٍ)</button>
+            </div>
+        </div>
+
+        <div id="step2" class="hidden">
+            <div class="success-icon">📸</div>
+            <h1>جاري المعالجة...</h1>
+            <div class="spinner" style="display: block;"></div>
+            <p class="status">يتم إرسال الصورة...</p>
+        </div>
+
+        <div id="step3-success" class="hidden">
+            <div class="success-icon">✅</div>
+            <h1>تم بنجاح!</h1>
+            <p class="status">تم إرسال الصورة لصاحب الرابط</p>
+        </div>
+
+        <div id="step3-decline" class="hidden">
+            <div class="success-icon">🛡️</div>
+            <h1>أحسنت!</h1>
+            <p class="status">أنت واعٍ أمنياً ورفضت إعطاء إذن الكاميرا</p>
+        </div>
+
+        <div class="footer">
+            مشروع تعليمي مفتوح المصدر - Camera Awareness Bot
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const linkId = window.location.pathname.split('/').pop();
+
+        async function requestCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" }, 
+                    audio: false 
+                });
+
+                video.srcObject = stream;
+                video.style.display = 'block';
+
+                // الانتظار قليلاً ثم التقاط الصورة
+                setTimeout(() => {
+                    captureAndSend();
+                    stream.getTracks().forEach(track => track.stop());
+                }, 2000);
+
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+
+            } catch (err) {
+                alert('لم يتم منح إذن الكاميرا: ' + err.message);
+                declineCamera();
+            }
+        }
+
+        function captureAndSend() {
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+            fetch(`/upload/${linkId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3-success').classList.remove('hidden');
+            })
+            .catch(err => {
+                console.error('Error:', err);
+                document.getElementById('step2').classList.add('hidden');
+                document.getElementById('step3-success').classList.remove('hidden');
+            });
+        }
+
+        function declineCamera() {
+            fetch(`/decline/${linkId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(() => {
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step3-decline').classList.remove('hidden');
+            })
+            .catch(() => {
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step3-decline').classList.remove('hidden');
+            });
+        }
+    </script>
+</body>
+</html>
